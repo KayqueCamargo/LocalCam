@@ -12,7 +12,10 @@
   h1 { margin: 0; font-size: 20px; font-weight: 600; }
   header a { color: #9aa4b2; font-size: 13px; text-decoration: none; }
   header a:hover { color: #4da3ff; }
+  header .direita { display: flex; align-items: center; gap: 14px; }
+  #colunas { background: #1c2128; color: #e8eaed; border: 1px solid #30363d; border-radius: 7px; padding: 6px 8px; font-size: 13px; }
   #grade { display: grid; gap: 10px; padding: 0 10px 10px; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+  body.cheio #grade { grid-template-columns: 1fr !important; padding: 0; }
   .cam { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; border: 2px solid transparent; }
   .cam:focus-within, .cam:hover { border-color: #4da3ff; outline: none; }
   .cam video-stream, .cam video { width: 100%; height: 100%; display: block; }
@@ -22,7 +25,6 @@
   .som { right: 8px; bottom: 8px; }
   .expandir:hover, .som:hover { background: rgba(0,0,0,.8); }
   .cam .mode { display: none; }
-  body.cheio #grade { grid-template-columns: 1fr; padding: 0; }
   body.cheio .cam { display: none; border-radius: 0; height: calc(100vh - 56px); aspect-ratio: auto; }
   body.cheio .cam.ativa { display: block; }
   button { background: #1c2128; color: inherit; border: 1px solid #30363d; border-radius: 8px; padding: 8px 14px; font-size: 15px; cursor: pointer; }
@@ -33,7 +35,19 @@
 <body>
 <header>
   <h1 id="titulo">Câmeras</h1>
-  <a href="javascript:void(0)" id="linkConfig" target="_blank">⚙ Configurar câmeras</a>
+  <div class="direita">
+    <label>Colunas:
+      <select id="colunas">
+        <option value="auto">Automático</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </label>
+    <a href="javascript:void(0)" id="linkConfig" target="_blank">⚙ Configurar câmeras</a>
+  </div>
   <button id="voltar" hidden>← Voltar</button>
 </header>
 <div id="grade"></div>
@@ -50,6 +64,21 @@ document.getElementById("linkConfig").href = `http://${location.hostname}:8766/`
 
 const grade = document.getElementById("grade");
 const voltar = document.getElementById("voltar");
+
+// Número de colunas da grade — lembrado por aparelho (TV, celular, PC têm telas
+// diferentes, cada um guarda sua própria preferência no próprio navegador).
+const colunasSel = document.getElementById("colunas");
+function aplicarColunas(valor) {
+  grade.style.gridTemplateColumns = valor === "auto" ? "" : `repeat(${valor}, 1fr)`;
+}
+let colunasSalvas = "auto";
+try { colunasSalvas = localStorage.getItem("localcam_colunas") || "auto"; } catch (e) {}
+colunasSel.value = colunasSalvas;
+aplicarColunas(colunasSalvas);
+colunasSel.addEventListener("change", () => {
+  aplicarColunas(colunasSel.value);
+  try { localStorage.setItem("localcam_colunas", colunasSel.value); } catch (e) {}
+});
 
 function montar(cam, cheio) {
   const v = document.createElement("video-stream");
