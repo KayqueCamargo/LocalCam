@@ -1,0 +1,14 @@
+# Dados pessoais (IP, usuário, nome das câmeras, senha) — nunca commitar
+go2rtc.yaml
+cameras.json
+web/cameras.generated.js
+
+# Binário baixado automaticamente pelo app.py (veja README)
+bin/
+
+# Logs e arquivos de execução local
+app.log
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

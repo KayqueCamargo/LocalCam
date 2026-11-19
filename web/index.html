@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Câmeras</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0d10; color: #e8eaed; font-family: system-ui, sans-serif; }
+  header { padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+  h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header a { color: #9aa4b2; font-size: 13px; text-decoration: none; }
+  header a:hover { color: #4da3ff; }
+  #grade { display: grid; gap: 10px; padding: 0 10px 10px; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+  .cam { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; border: 2px solid transparent; }
+  .cam:focus-within, .cam:hover { border-color: #4da3ff; outline: none; }
+  .cam video-stream, .cam video { width: 100%; height: 100%; display: block; }
+  .nome { position: absolute; left: 10px; top: 8px; padding: 3px 10px; border-radius: 6px; background: rgba(0,0,0,.55); font-size: 15px; z-index: 2; pointer-events: none; }
+  .expandir { position: absolute; right: 8px; top: 8px; z-index: 2; width: 34px; height: 34px; border-radius: 8px; border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .expandir:hover { background: rgba(0,0,0,.8); }
+  .cam .mode { display: none; }
+  body.cheio #grade { grid-template-columns: 1fr; padding: 0; }
+  body.cheio .cam { display: none; border-radius: 0; height: calc(100vh - 56px); aspect-ratio: auto; }
+  body.cheio .cam.ativa { display: block; }
+  button { background: #1c2128; color: inherit; border: 1px solid #30363d; border-radius: 8px; padding: 8px 14px; font-size: 15px; cursor: pointer; }
+  .vazio { padding: 60px 20px; text-align: center; color: #9aa4b2; }
+  .vazio a { color: #4da3ff; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="titulo">Câmeras</h1>
+  <a href="javascript:void(0)" id="linkConfig" target="_blank">⚙ Configurar câmeras</a>
+  <button id="voltar" hidden>← Voltar</button>
+</header>
+<div id="grade"></div>
+
+<script src="video-stream.js" type="module"></script>
+<script type="module">
+// video-stream.js é carregado como module (sempre adiado); este também precisa ser
+// module para rodar DEPOIS dele — senão o elemento <video-stream> é criado antes de
+// existir o "molde" e a câmera só conecta depois de um clique.
+import { CAMERAS } from "./cameras.generated.js";
+
+// aponta "Configurar câmeras" para a mesma máquina, na porta da tela de configuração
+document.getElementById("linkConfig").href = `http://${location.hostname}:8766/`;
+
+const grade = document.getElementById("grade");
+const voltar = document.getElementById("voltar");
+
+function montar(cam, cheio) {
+  const v = document.createElement("video-stream");
+  v.src = new URL("api/ws?src=" + (cheio ? cam.alta : cam.leve), location.href);
+  return v;
+}
+
+if (CAMERAS.length === 0) {
+  grade.innerHTML = `<div class="vazio">Nenhuma câmera configurada ainda.<br>
+    Abra a <a href="javascript:void(0)" onclick="document.getElementById('linkConfig').click()">tela de configuração</a> para adicionar.</div>`;
+}
+
+CAMERAS.forEach((cam) => {
+  const box = document.createElement("div");
+  box.className = "cam";
+  box.tabIndex = 0;
+  box.innerHTML = '<div class="nome"></div><button class="expandir" title="Tela cheia">⛶</button>';
+  box.querySelector(".nome").textContent = cam.nome;
+  box.appendChild(montar(cam, false));
+  const abrir = () => {
+    document.body.classList.add("cheio");
+    box.classList.add("ativa");
+    box.querySelector("video-stream").remove();
+    box.appendChild(montar(cam, true));
+    voltar.hidden = false;
+  };
+  box.querySelector(".expandir").addEventListener("click", (e) => { e.stopPropagation(); abrir(); });
+  box.addEventListener("keydown", (e) => { if (e.key === "Enter") abrir(); });
+  box._fechar = () => {
+    box.classList.remove("ativa");
+    box.querySelector("video-stream").remove();
+    box.appendChild(montar(cam, false));
+  };
+  grade.appendChild(box);
+});
+
+function sair() {
+  document.body.classList.remove("cheio");
+  voltar.hidden = true;
+  document.querySelectorAll(".cam.ativa").forEach((b) => b._fechar());
+}
+voltar.addEventListener("click", sair);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" || e.key === "Backspace") sair(); });
+</script>
+</body>
+</html>
